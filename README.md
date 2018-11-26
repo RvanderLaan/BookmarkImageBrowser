@@ -1,5 +1,7 @@
 # Bookmark Image Browser
 
+[Extension page](https://chrome.google.com/webstore/detail/akmdmccjelmihjckbpfimhjjplijbngd)
+
 Browse through your bookmarked images from direct links, DeviantArt, Instagram, Tumblr, Reddit and Pixiv embedded on the extension page.
 
 I made this for myself a couple of years ago since I bookmark a lot of art references and there was no easy way to browse through them. I made some improvements lately and  thought I might as well publish it.
