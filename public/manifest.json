@@ -14,8 +14,7 @@
     "webRequest",
     "webRequestBlocking",
     "*://*.deviantart.com/",
-    "*://*.pixiv.net/", "*://i.pximg.net/",
-    "*://*.igeturl.com/"
+    "*://*.pixiv.net/", "*://i.pximg.net/"
   ],
   "content_security_policy": "script-src 'self' 'sha256-GgRxrVOKNdB4LrRsVPDSbzvfdV4UqglmviH9GoBJ5jk=' https://backend.deviantart.com; object-src 'self'"
 }

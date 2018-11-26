@@ -232,7 +232,7 @@ class App extends Component<IAppProps, IAppState> {
             { splitBookmarks.images.map((bookmark, index) => (
                 <Thumbnail
                   bookmark={bookmark}
-                  key={`image-${bookmark.title}`}
+                  key={`image-${index}-${bookmark.title}`}
                   showFullImage={this.showFullImage}
                   size={thumbnailSize}
                 />

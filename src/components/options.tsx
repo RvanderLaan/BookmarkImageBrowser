@@ -41,8 +41,6 @@ export async function getPixivToken() : Promise<string> {
   }
 }
 
-
-
 enum SubmitStatus {
   NONE,
   LOADING,
@@ -95,10 +93,8 @@ const options = () => {
 
       <p>(Needed to access the Pixiv API for retrieving images.)</p>
 
-      {/* TODO: Add github link */}
-      <p><b>Source:</b> <a href="github here">Github</a></p>
-      <p><b>About:</b> Made by ThaRemo, {version}</p>
-      <p><b>Contact:</b> <a href="mailto:rrm.remi@gmail.com">E-mail</a></p>
+      <p><b>Source:</b> <a href="https://github.com/RvanderLaan/BookmarkImageBrowser">Github</a></p>
+      <p><b>Version:</b> {version}</p>
     </div>
   );
 };
