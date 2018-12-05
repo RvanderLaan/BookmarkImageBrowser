@@ -9,6 +9,7 @@ interface IThumbnailProps {
   bookmark : BookmarkTreeNode;
   showFullImage: (imageData : IImageData) => any,
   size: ThumbnailSize,
+  convertToLink: () => any,
 }
 
 export enum ThumbnailSize {
@@ -16,17 +17,16 @@ export enum ThumbnailSize {
   LARGE = 'Large',
 }
 
-const Thumbnail = ({ bookmark, showFullImage, size } : IThumbnailProps) => {
+const Thumbnail = ({ bookmark, showFullImage, size, convertToLink } : IThumbnailProps) => {
 
   const [isHovering, setHovering] = useState(false);
   const [imageData, setImageData] = useState(null as IImageData | null);
   const [error, setError] = useState(null as string | null);
-  if (error) console.log(imageData);
 
   useEffect(() => {
     fetchAnyImage(bookmark)
       .then((imageData) => setImageData(imageData))
-      .catch((err) => { setError(err.toString()); console.error(err) })
+      .catch((err) => { convertToLink(); console.warn('Could not load image, converting to link', bookmark.url, err); })
   }, []); // Pass in empty array to only fetch on mount
 
   return (

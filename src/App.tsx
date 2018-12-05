@@ -4,7 +4,7 @@ import Thumbnail, {ThumbnailSize} from "./components/thumbnail";
 import FullImage from "./components/fullImage";
 import Link from "./components/link";
 import Directory from "./components/directory";
-import Options, {getPixivToken} from "./components/options";
+import Options, {getPixivToken, getTwitterToken} from "./components/options";
 import {fetchAnyImage, IImageData, isAnyImage, isContentTypeImage} from './imageUtils';
 import {getCookie, setCookie} from "./config";
 import {findPreviousDirectory, getBookmark, getBookmarks, getDirectoryPath} from "./bookmarkUtils";
@@ -63,9 +63,14 @@ class App extends Component<IAppProps, IAppState> {
 
     document.addEventListener('keydown', this.handleKeyDown);
 
-    // Fetch pixiv token, expires after some time
+    // Fetch pixiv token, expires after some time, so fetch every time
     if (getCookie('pixivToken')) {
-      getPixivToken().then();
+      getPixivToken().then().catch(console.error);
+    }
+
+    // Fetch twitter token - only need to fetch it once
+    if (!getCookie('twitterToken')) {
+      getTwitterToken().then().catch(console.error);
     }
 
     // If a directory ID is in the URL, use it to show that directory
@@ -190,8 +195,24 @@ class App extends Component<IAppProps, IAppState> {
     setCookie('thumbnailSize', size);
     this.setState({ thumbnailSize: size });
   }
+  convertImageToLink(bookmark : BookmarkTreeNode, directoryId : string) {
+    this.setState((state) => {
+      const { splitBookmarks } = state;
+      // Don't convert if the function is called after switching to a new directory
+      if (directoryId === state.currentId) {
+        const imageIndex = splitBookmarks.images.indexOf(bookmark);
+        if (imageIndex >= 0) {
+          // Remove from image list
+          const removedImage = splitBookmarks.images.splice(imageIndex, 1)[0];
+          // Add it to links
+          splitBookmarks.links.splice(state.splitBookmarks.links.length, 0, removedImage);
+        }
+      }
+      return { splitBookmarks };
+    });
+  }
   render() {
-    const { path, splitBookmarks, fullImage, showOptions, thumbnailSize } = this.state;
+    const { currentId, path, splitBookmarks, fullImage, showOptions, thumbnailSize } = this.state;
     return (
       <React.Fragment>
         { fullImage && (
@@ -220,11 +241,11 @@ class App extends Component<IAppProps, IAppState> {
                 <Directory
                   bookmark={bookmark}
                   chooseDirectory={this.chooseDirectory}
-                  key={`folder-${index}-${bookmark.title}`}
+                  key={`folder-${currentId}-${index}-${bookmark.title}`}
                 />
             ))}
             { splitBookmarks.links.map((bookmark, index) => (
-                <Link bookmark={bookmark} key={`link-${bookmark.title}`} />
+                <Link bookmark={bookmark} key={`link-${currentId}-${index}-${bookmark.title}`} />
             ))}
           </div>
 
@@ -232,9 +253,10 @@ class App extends Component<IAppProps, IAppState> {
             { splitBookmarks.images.map((bookmark, index) => (
                 <Thumbnail
                   bookmark={bookmark}
-                  key={`image-${index}-${bookmark.title}`}
+                  key={`image-${currentId}-${index}-${bookmark.title}`}
                   showFullImage={this.showFullImage}
                   size={thumbnailSize}
+                  convertToLink={() => this.convertImageToLink(bookmark, currentId)}
                 />
             ))}
           </div>

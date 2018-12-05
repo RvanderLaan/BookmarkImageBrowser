@@ -1,6 +1,6 @@
 {
   "name": "bookmark-image-browser-react",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "dependencies": {
     "react": "^16.7.0-alpha.2",

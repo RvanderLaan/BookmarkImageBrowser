@@ -3,14 +3,16 @@ type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import {flickrApiKey, tumblrApiKey, imgurApiKey, getCookie} from './config';
 
 // URL Utils
-export function isDirectImage(url : string) : boolean { return url.match(/\.(jpeg|jpg|gif|png|svg)/) !== null; }
-export function isDeviantArtImage(url : string) : boolean { return url.indexOf('deviantart.com/art/') > 0; }
-export function isPixivImage(url : string) : boolean { return url.indexOf('pixiv.net') >= 0 && url.indexOf('illust_id=') >= 0; }
-export function isInstagramImage(url : string) : boolean { return url.indexOf('instagram.com/p/') >= 0; }
-export function isFlickrImage(url : string) : boolean { return url.indexOf('flickr.com/photos/') >= 0; }
-export function isTumblrImage(url : string) : boolean { return url.indexOf('.tumblr.com/post/') >= 0; }
-export function isImgurImage(url : string) : boolean { return url.indexOf('imgur.com/') >= 0; }
-export function isRedditImage(url : string) : boolean { return url.indexOf('reddit.com/r/') >= 0 && url.indexOf('/comments/') > 0; }
+// Some inspiration from https://github.com/erikdesjardins/Reddit-Enhancement-Suite/tree/master/lib/modules/hosts
+export const isDirectImage = (url : string) => url.match(/\.(jpeg|jpg|gif|png|svg)/) !== null;
+export const isDeviantArtImage = (url : string) => url.indexOf('deviantart.com/art/') > 0;
+export const isPixivImage = (url : string) => url.indexOf('pixiv.net') >= 0 && url.indexOf('illust_id=') >= 0;
+export const isInstagramImage = (url : string) => url.indexOf('instagram.com/p/') >= 0;
+export const isFlickrImage = (url : string) => url.indexOf('flickr.com/photos/') >= 0;
+export const isTumblrImage = (url : string) => url.indexOf('.tumblr.com/post/') >= 0;
+export const isImgurImage = (url : string) => url.indexOf('imgur.com/') >= 0;
+export const isRedditImage = (url : string) => url.indexOf('reddit.com/r/') >= 0 && url.indexOf('/comments/') > 0;
+export const isTwitterImage = (url : string) => url.indexOf('twitter.com/') !== -1 && url.indexOf('/status/') !== -1;
 
 export async function isContentTypeImage(url : string) {
   try {
@@ -30,7 +32,8 @@ export function isAnyImage(url : string) : boolean {
     || isFlickrImage(url)
     || isTumblrImage(url)
     || isImgurImage(url)
-    || isRedditImage(url);
+    || isRedditImage(url)
+    || isTwitterImage(url);
 }
 
 function removeUrlParams(url : string) : string {
@@ -53,15 +56,24 @@ export interface IImageData {
 
 export async function fetchDirectImage(bookmark : BookmarkTreeNode) : Promise<IImageData> {
   let url = bookmark.url || '';
-  // gifv -> gif
-  if (url.endsWith('.gifv')) {
-    url = url.substr(0, url.length - 1);
-  }
   const filename = bookmark.title || url.substring(url.lastIndexOf('/')+1);
+  let previewUrl = url;
+
+  if (url.endsWith('.gifv')) {
+    // gifv -> gif
+    url = url.substr(0, url.length - 1);
+    previewUrl = url;
+  } else if (url.endsWith(':large')) {
+    // Twitter images are :large by default
+    url = url.substr(0, url.length - 6);
+    previewUrl = `${url}:medium`;
+  }
+
   return {
     bookmark,
     title: filename,
     url: url,
+    previewUrl,
   };
 }
 
@@ -226,11 +238,41 @@ export async function fetchRedditImage(bookmark : BookmarkTreeNode) : Promise<II
   return fetchAnyImage(fakeBookmark);
 }
 
+export async function fetchTwitterImage(bookmark : BookmarkTreeNode) : Promise<IImageData> {
+  const url = bookmark.url || '';
+  const idIdx = url.indexOf('/status/') + 8;
+  let idIdxEnd = url.substr(idIdx).indexOf('/');
+  idIdxEnd = idIdxEnd === -1 ? url.length : (idIdx + idIdxEnd);
+  const id = url.substring(idIdx, idIdxEnd);
+  const token = getCookie('twitterToken');
+
+  const apiWorksUrl = `https://api.twitter.com/1.1/statuses/lookup.json?id=${id}&trim_user=1`;
+  const response = await fetch(apiWorksUrl, {
+    headers: {
+      'Authorization': "Bearer " + token,
+    }
+  });
+  const data = await response.json();
+
+  if (data.length >= 1 && data[0].entities && data[0].entities.media && data[0].entities.media[0]) {
+
+    const url = data[0].entities.media[0].media_url;
+    return {
+      bookmark,
+      title: bookmark.title,
+      previewUrl: `${url}:medium`,
+      url,
+    };
+  } else {
+    throw new Error(JSON.stringify(data, null, 2));
+  }
+}
+
 /**
  * Only works for images checked with isAnyImage
  * @param bookmark
  */
-export function fetchAnyImage(bookmark : BookmarkTreeNode) : Promise<IImageData> {
+export async function fetchAnyImage(bookmark : BookmarkTreeNode) : Promise<IImageData> {
   const url = bookmark.url || '';
   if (isDirectImage(url))     return fetchDirectImage(bookmark);
   if (isDeviantArtImage(url)) return fetchDeviantArtImage(bookmark);
@@ -240,12 +282,16 @@ export function fetchAnyImage(bookmark : BookmarkTreeNode) : Promise<IImageData>
   if (isTumblrImage(url))     return fetchTumblrImage(bookmark);
   if (isImgurImage(url))      return fetchImgurImage(bookmark);
   if (isRedditImage(url))     return fetchRedditImage(bookmark);
+  if (isTwitterImage(url))    return fetchTwitterImage(bookmark);
 
-  // If it's not an image based on its url, its content type must be image/*
-  // (checked in isAnyImage)
-  return Promise.resolve({
+  // Check header
+  const hasImageHeader = await isContentTypeImage(bookmark.url || '');
+  if (!hasImageHeader){
+    throw new Error(`Bookmark is not an image: ${bookmark.url}`);
+  }
+  return {
     bookmark,
     title: bookmark.title,
     url: bookmark.url || '',
-  });
+  };
 }
