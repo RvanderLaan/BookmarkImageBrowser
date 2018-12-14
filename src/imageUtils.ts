@@ -235,7 +235,7 @@ export async function fetchRedditImage(bookmark : BookmarkTreeNode) : Promise<II
   }
   const fakeBookmark = bookmark;
   fakeBookmark.url = postUrl;
-  return fetchAnyImage(fakeBookmark);
+  return fetchAnyImage(fakeBookmark, bookmark.url);
 }
 
 export async function fetchTwitterImage(bookmark : BookmarkTreeNode) : Promise<IImageData> {
@@ -271,8 +271,9 @@ export async function fetchTwitterImage(bookmark : BookmarkTreeNode) : Promise<I
 /**
  * Only works for images checked with isAnyImage
  * @param bookmark
+ * @param urlOverride Override the url when the actual url is different than that of the given bookmark
  */
-export async function fetchAnyImage(bookmark : BookmarkTreeNode) : Promise<IImageData> {
+export async function fetchAnyImage(bookmark : BookmarkTreeNode, urlOverride? : string) : Promise<IImageData> {
   const url = bookmark.url || '';
   if (isDirectImage(url))     return fetchDirectImage(bookmark);
   if (isDeviantArtImage(url)) return fetchDeviantArtImage(bookmark);
@@ -292,6 +293,6 @@ export async function fetchAnyImage(bookmark : BookmarkTreeNode) : Promise<IImag
   return {
     bookmark,
     title: bookmark.title,
-    url: bookmark.url || '',
+    url: urlOverride || bookmark.url || '',
   };
 }

@@ -6,6 +6,7 @@ type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 interface INavbarProps {
   path : BookmarkTreeNode[],
   chooseDirectory: (id : string) => any,
+  onSearch: (query?: string) => any,
   toggleOptions: () => any,
   setThumnailSize: (size : ThumbnailSize) => any,
   thumbnailSize: ThumbnailSize,
@@ -15,9 +16,10 @@ interface INavbarProps {
 }
 
 const Navbar = ({
-  path, chooseDirectory, toggleOptions, setThumnailSize, thumbnailSize, onDirUp, onDirLeft, onDirRight
+  path, chooseDirectory, onSearch, toggleOptions, setThumnailSize, thumbnailSize, onDirUp, onDirLeft, onDirRight
 } : INavbarProps) => {
   const handleThumbChange = (e : any) => setThumnailSize(e.target.value);
+  const handleSearchChange = (e : any) => onSearch(e.target.value);
   return (
     <div id="navbar">
       <div id="buttons">
@@ -45,6 +47,14 @@ const Navbar = ({
       </div>
 
       <div className="floatRight">
+        <div id="searchbar">
+          <input
+            type="text"
+            onChange={handleSearchChange}
+            placeholder="Search"
+          />
+        </div>
+
         <div className="navGroup floatLeft">
           {
             Object.values(ThumbnailSize).map((size, i) => (

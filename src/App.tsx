@@ -7,7 +7,7 @@ import Directory from "./components/directory";
 import Options, {getPixivToken, getTwitterToken} from "./components/options";
 import {fetchAnyImage, IImageData, isAnyImage, isContentTypeImage} from './imageUtils';
 import {getCookie, setCookie} from "./config";
-import {findPreviousDirectory, getBookmark, getBookmarks, getDirectoryPath} from "./bookmarkUtils";
+import {findPreviousDirectory, getBookmark, getBookmarks, getDirectoryPath, searchBookmarks, debounce} from "./bookmarkUtils";
 
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 
@@ -43,6 +43,8 @@ class App extends Component<IAppProps, IAppState> {
       showOptions: false,
       thumbnailSize: getCookie('thumbnailSize') as ThumbnailSize || ThumbnailSize.LARGE
     };
+    this.chooseBookmarks = this.chooseBookmarks.bind(this);
+    this.queryBookmarks = debounce(this.queryBookmarks.bind(this), 500);
     this.chooseDirectory = this.chooseDirectory.bind(this);
     this.onDirLeft = this.onDirLeft.bind(this);
     this.onDirRight = this.onDirRight.bind(this);
@@ -93,13 +95,35 @@ class App extends Component<IAppProps, IAppState> {
       else if (e.key === 'ArrowRight') this.onDirRight().then();
     }
   }
+    
   async chooseDirectory(id : string, doNotPushState? : boolean) {
-    const bookmarks = await getBookmarks(id);
-
     if (!doNotPushState) {
       history.pushState(id, "Directory " + id, window.location.pathname + "?" + id);
     }
 
+    this.setState({
+      currentId: id,
+      path: await getDirectoryPath(id),
+    });
+
+    const bookmarks = await getBookmarks(id);
+    await this.chooseBookmarks(bookmarks);
+  }
+
+  async queryBookmarks(query?: string) {
+    let bookmarks : BookmarkTreeNode[] | undefined = undefined;
+    if (query) {
+      bookmarks = await searchBookmarks(query);
+      // Limit to 100 for performance
+      bookmarks = bookmarks.slice(0, 200);
+    }
+    if (!bookmarks) {
+      bookmarks =  await getBookmarks(this.state.currentId);
+    }
+    await this.chooseBookmarks(bookmarks);
+  }
+
+  async chooseBookmarks(bookmarks : BookmarkTreeNode[]) {
     const directories : BookmarkTreeNode[] = [];
     const links       : BookmarkTreeNode[] = [];
     const images      : BookmarkTreeNode[] = [];
@@ -116,9 +140,7 @@ class App extends Component<IAppProps, IAppState> {
     });
 
     this.setState({
-      currentId: id,
       bookmarks,
-      path: await getDirectoryPath(id),
       splitBookmarks: {
         directories,
         links,
@@ -225,6 +247,7 @@ class App extends Component<IAppProps, IAppState> {
         <Navbar
           path={path}
           chooseDirectory={this.chooseDirectory}
+          onSearch={this.queryBookmarks}
           toggleOptions={this.toggleOptions}
           onDirUp={this.onDirUp}
           onDirLeft={this.onDirLeft}

@@ -95,6 +95,19 @@ code {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
 }
 
+#searchbar {
+  margin: 1px 16px 1px 16px;
+  display: block;
+  float: left;
+  padding: 6px;
+  border-radius: 4px;
+  background: #666666;
+  color: white;
+  border: 1px solid #999999;
+  height: 16px;
+  width: 200px;
+}
+
 .button {
   border-radius: 4px;
   color: white;
