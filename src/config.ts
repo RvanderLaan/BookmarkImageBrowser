@@ -1,4 +1,6 @@
-export const version = '0.2.1';
+export const version = '0.2.2';
+
+export const isDeveloping = !chrome || !chrome.bookmarks;
 
 export const flickrApiKey = '5d6a692a5a09bb9d18da1aae7f62e6a0';
 export const tumblrApiKey = 'dHwiC2BpOli30sSYhp0sUCWhc2wtauoFU0mhfvNvOQJUrIFRml';

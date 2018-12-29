@@ -7,7 +7,10 @@ import Directory from "./components/directory";
 import Options, {getPixivToken, getTwitterToken} from "./components/options";
 import {fetchAnyImage, IImageData, isAnyImage, isContentTypeImage} from './imageUtils';
 import {getCookie, setCookie} from "./config";
-import {findPreviousDirectory, getBookmark, getBookmarks, getDirectoryPath, searchBookmarks, debounce} from "./bookmarkUtils";
+import BookmarkProvider from "./bookmarkUtils";
+import { debounce } from './utils';
+
+const provider = new BookmarkProvider();
 
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 
@@ -24,7 +27,8 @@ interface IAppState {
   },
   fullImage: IImageData | undefined,
   showOptions: boolean,
-  thumbnailSize : ThumbnailSize
+  thumbnailSize : ThumbnailSize,
+  searchQuery : string,
 }
 
 class App extends Component<IAppProps, IAppState> {
@@ -41,9 +45,11 @@ class App extends Component<IAppProps, IAppState> {
       },
       fullImage: undefined,
       showOptions: false,
-      thumbnailSize: getCookie('thumbnailSize') as ThumbnailSize || ThumbnailSize.LARGE
+      thumbnailSize: getCookie('thumbnailSize') as ThumbnailSize || ThumbnailSize.LARGE,
+      searchQuery: '',
     };
     this.chooseBookmarks = this.chooseBookmarks.bind(this);
+    this.setSearchQuery = this.setSearchQuery.bind(this);
     this.queryBookmarks = debounce(this.queryBookmarks.bind(this), 500);
     this.chooseDirectory = this.chooseDirectory.bind(this);
     this.onDirLeft = this.onDirLeft.bind(this);
@@ -103,22 +109,29 @@ class App extends Component<IAppProps, IAppState> {
 
     this.setState({
       currentId: id,
-      path: await getDirectoryPath(id),
+      path: await provider.getDirectoryPath(id),
     });
 
-    const bookmarks = await getBookmarks(id);
+    const bookmarks = await provider.getBookmarks(id);
     await this.chooseBookmarks(bookmarks);
   }
 
+  setSearchQuery = (q? : string) => {
+    this.setState({ searchQuery: q || '' });
+    this.queryBookmarks(q);
+  }
+
   async queryBookmarks(query?: string) {
+    this.setState({ searchQuery: query || '' });
+
     let bookmarks : BookmarkTreeNode[] | undefined = undefined;
     if (query) {
-      bookmarks = await searchBookmarks(query);
+      bookmarks = await provider.searchBookmarks(query);
       // Limit to 100 for performance
       bookmarks = bookmarks.slice(0, 200);
     }
     if (!bookmarks) {
-      bookmarks =  await getBookmarks(this.state.currentId);
+      bookmarks =  await provider.getBookmarks(this.state.currentId);
     }
     await this.chooseBookmarks(bookmarks);
   }
@@ -158,29 +171,32 @@ class App extends Component<IAppProps, IAppState> {
               const { splitBookmarks } = state;
               splitBookmarks.links.splice(splitBookmarks.links.indexOf(link), 1);
               splitBookmarks.images.push(link);
+              return {
+                splitBookmarks
+              }
             });
           }
         });
     });
   }
   async onDirUp() {
-    const current = await getBookmark(this.state.currentId);
+    const current = await provider.getBookmark(this.state.currentId);
     await this.chooseDirectory(current.parentId || '0');
   }
   async onDirLeft() {
     const { currentId } = this.state;
-    const current = await getBookmark(currentId);
-    const parentBookmarks = await getBookmarks(current.parentId || '0');
-    const previousDir = findPreviousDirectory(parentBookmarks, currentId);
+    const current = await provider.getBookmark(currentId);
+    const parentBookmarks = await provider.getBookmarks(current.parentId || '0');
+    const previousDir = provider.findPreviousDirectory(parentBookmarks, currentId);
     if (previousDir) {
       await this.chooseDirectory(previousDir.id);
     }
   }
   async onDirRight() {
     const { currentId } = this.state;
-    const current = await getBookmark(currentId);
-    const parentBookmarks = await getBookmarks(current.parentId || '0');
-    const previousDir = findPreviousDirectory(parentBookmarks.reverse(), currentId);
+    const current = await provider.getBookmark(currentId);
+    const parentBookmarks = await provider.getBookmarks(current.parentId || '0');
+    const previousDir = provider.findPreviousDirectory(parentBookmarks.reverse(), currentId);
     if (previousDir) {
       await this.chooseDirectory(previousDir.id);
     }
@@ -234,30 +250,29 @@ class App extends Component<IAppProps, IAppState> {
     });
   }
   render() {
-    const { currentId, path, splitBookmarks, fullImage, showOptions, thumbnailSize } = this.state;
+    const { currentId, path, splitBookmarks, fullImage, showOptions, thumbnailSize, searchQuery } = this.state;
     return (
       <React.Fragment>
         { fullImage && (
-          <FullImage
-            imageData={fullImage}
-            hideFullImage={this.hideFullImage}
-          />
+          <FullImage imageData={fullImage} hideFullImage={this.hideFullImage} />
         )}
 
         <Navbar
           path={path}
           chooseDirectory={this.chooseDirectory}
-          onSearch={this.queryBookmarks}
+          onSearch={this.setSearchQuery}
           toggleOptions={this.toggleOptions}
           onDirUp={this.onDirUp}
           onDirLeft={this.onDirLeft}
           onDirRight={this.onDirRight}
           thumbnailSize={thumbnailSize}
           setThumnailSize={this.setThumbnailSize}
+          searchQuery={searchQuery}
         />
 
         { showOptions && <Options /> }
 
+        {/* Todo: use https://github.com/CassetteRocks/react-infinite-scroller */}
         <div id="content">
           <div id="bookmarks">
             { splitBookmarks.directories.map((bookmark, index) => (

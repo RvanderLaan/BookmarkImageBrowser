@@ -1,10 +1,11 @@
-import React, {ChangeEvent} from 'react';
+import React, {ChangeEvent, useState, useEffect} from 'react';
 import {ThumbnailSize} from "./thumbnail";
 
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 
 interface INavbarProps {
   path : BookmarkTreeNode[],
+  searchQuery: string,
   chooseDirectory: (id : string) => any,
   onSearch: (query?: string) => any,
   toggleOptions: () => any,
@@ -16,10 +17,20 @@ interface INavbarProps {
 }
 
 const Navbar = ({
-  path, chooseDirectory, onSearch, toggleOptions, setThumnailSize, thumbnailSize, onDirUp, onDirLeft, onDirRight
+  path, searchQuery, chooseDirectory, onSearch, toggleOptions, setThumnailSize, thumbnailSize, onDirUp, onDirLeft, onDirRight
 } : INavbarProps) => {
   const handleThumbChange = (e : any) => setThumnailSize(e.target.value);
-  const handleSearchChange = (e : any) => onSearch(e.target.value);
+
+  const handleSearchChange = (e : React.ChangeEvent<HTMLInputElement>) => {
+    onSearch(e.target.value);
+  };
+  const handleSearchKey = (e : React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      onSearch('');
+    }
+  }
+  const clearSearch = () => onSearch('');
+
   return (
     <div id="navbar">
       <div id="buttons">
@@ -28,20 +39,19 @@ const Navbar = ({
         <div onClick={onDirRight} className="button" id="right" title="Directory right"/>
       </div>
 
-      <div className="navGroup">
-        <div className="dir" onClick={() => chooseDirectory('0')}>All</div>
+      <div className={`navGroup ${searchQuery && 'grey-text'}`}>
+        <div className="dir" onClick={() => { chooseDirectory('0'); onSearch(''); }}>All</div>
         {
           path.map((bookmark, i) => (
-            <React.Fragment>
+            <span key={`dir-${i}`}>
               <span> &gt; </span>
               <div
                 className="dir"
-                key={`dir-${i}`}
-                onClick={() => chooseDirectory(bookmark.id)}
+                onClick={() => { chooseDirectory(bookmark.id); onSearch(''); }}
               >
                 {bookmark.title}
               </div>
-            </React.Fragment>
+            </span>
           ))
         }
       </div>
@@ -50,15 +60,22 @@ const Navbar = ({
         <div id="searchbar">
           <input
             type="text"
+            onKeyDown={handleSearchKey}
             onChange={handleSearchChange}
             placeholder="Search"
+            value={searchQuery}
           />
+          <div
+            className="button"
+            onClick={clearSearch}
+            title="Clear search"
+          >x</div>
         </div>
 
         <div className="navGroup floatLeft">
           {
             Object.values(ThumbnailSize).map((size, i) => (
-              <>
+              <span key={`thumb-size-${i}`}>
                 { i !== 0 && <span> </span>}
                 <label className="navRadio" title={`${size} thumbnail sizes`}>
                   <input
@@ -70,7 +87,7 @@ const Navbar = ({
                   />
                   { Object.values(ThumbnailSize)[i] }
                 </label>
-              </>
+              </span>
             ))
           }
         </div>

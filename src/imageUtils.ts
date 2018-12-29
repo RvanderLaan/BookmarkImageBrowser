@@ -1,6 +1,6 @@
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 
-import {flickrApiKey, tumblrApiKey, imgurApiKey, getCookie} from './config';
+import {flickrApiKey, tumblrApiKey, imgurApiKey, getCookie, isDeveloping} from './config';
 
 // URL Utils
 // Some inspiration from https://github.com/erikdesjardins/Reddit-Enhancement-Suite/tree/master/lib/modules/hosts
@@ -16,9 +16,10 @@ export const isTwitterImage = (url : string) => url.indexOf('twitter.com/') !== 
 
 export async function isContentTypeImage(url : string) {
   try {
-    const headers = await fetch(url, {method: 'HEAD', mode: "no-cors"});
-    const type = headers.headers.get('Content-type') || '';
-    return type.indexOf('image/') !== -1;
+    const additionalHeaders : RequestInit = isDeveloping ? { } : { mode: 'no-cors' };
+    const headerResponse = await fetch(url, {method: 'HEAD', ...additionalHeaders });
+    const type = headerResponse.headers.get('Content-type') || '';
+    return type.startsWith('image/');
   } catch (e) {
     return false;
   }

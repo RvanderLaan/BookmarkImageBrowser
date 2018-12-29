@@ -147,6 +147,9 @@ const options = () => {
       </p>
       <p><b>Source:</b> <a href="https://github.com/RvanderLaan/BookmarkImageBrowser">Github</a></p>
       <p><b>Version:</b> {version}</p>
+      <p>
+        <b>Tip:</b> You can use the arrow keys to navigate through folders and full sized images!
+      </p>
     </div>
   );
 };
