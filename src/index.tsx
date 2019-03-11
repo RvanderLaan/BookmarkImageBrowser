@@ -37,7 +37,8 @@ if (chrome && chrome.webRequest) {
       urls: ["*://*.pixiv.net/*", "*://i.pximg.net/*"]
     }, [
       "requestHeaders",
-      "blocking"
+      "blocking",
+      "extraHeaders",
     ]
   );
 }
