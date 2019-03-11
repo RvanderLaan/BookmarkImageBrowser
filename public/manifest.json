@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Bookmark Image Browser",
   "short_name": "⭐📷👀",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "description": "Browse through your bookmarked images.",
   "icons": {
     "16": "Logo_16.png",

@@ -1,4 +1,4 @@
-export const version = '0.2.2';
+export const version = '0.2.4';
 
 export const isDeveloping = !chrome || !chrome.bookmarks;
 

@@ -1,11 +1,11 @@
 {
   "name": "bookmark-image-browser-react",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "private": true,
   "dependencies": {
-    "react": "16.7.0-alpha.2",
+    "react": "^16.8.4",
     "react-circular-progressbar": "^1.0.0",
-    "react-dom": "16.7.0-alpha.2",
+    "react-dom": "^16.8.4",
     "react-scripts": "2.1.1",
     "typescript": "^3.1.6"
   },
