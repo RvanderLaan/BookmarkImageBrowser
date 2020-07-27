@@ -1,6 +1,6 @@
 {
   "name": "bookmark-image-browser-react",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": true,
   "dependencies": {
     "md5": "^2.2.1",
