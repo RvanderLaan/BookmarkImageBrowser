@@ -4,11 +4,39 @@ import {
   version,
   pixivClientId,
   pixivClientSecret,
+  pixivServerHash,
   getCookie,
   setCookie,
   twitterClientId,
   twitterClientSecret
 } from "../config";
+
+const md5 = require('md5');
+
+function rfc3339(d: Date) {
+    
+  function pad(n: number) {
+      return n < 10 ? "0" + n : n;
+  }
+
+  function timezoneOffset(offset: number) {
+      var sign;
+      if (offset === 0) {
+          return "Z";
+      }
+      sign = (offset > 0) ? "-" : "+";
+      offset = Math.abs(offset);
+      return sign + pad(Math.floor(offset / 60)) + ":" + pad(offset % 60);
+  }
+
+  return d.getFullYear() + "-" +
+      pad(d.getMonth() + 1) + "-" +
+      pad(d.getDate()) + "T" +
+      pad(d.getHours()) + ":" +
+      pad(d.getMinutes()) + ":" +
+      pad(d.getSeconds()) + 
+      timezoneOffset(d.getTimezoneOffset());
+}
 
 export async function getPixivToken() : Promise<string> {
   const username = getCookie('pixivUsername');
@@ -19,6 +47,8 @@ export async function getPixivToken() : Promise<string> {
     const formData = new FormData();
     formData.append("client_id", pixivClientId);
     formData.append("client_secret", pixivClientSecret);
+    formData.append('get_secure_url', 'true');
+    formData.append('include_policy', 'true');
     formData.append("grant_type", "password");
     formData.append("username", username);
     formData.append("password", password);
@@ -29,16 +59,24 @@ export async function getPixivToken() : Promise<string> {
       formData.append("device_token", deviceToken);
     }
 
+    // https://github.com/upbit/pixivpy/issues/83
+    const clientTime = rfc3339(new Date());
+
     const response = await fetch(tokenUrl, {
       method: 'POST',
-      body: formData
+      body: formData,
+      headers: {
+        'X-Client-Time': clientTime,
+        'X-Client-Hash': md5(clientTime + pixivServerHash),
+        // 'Content-Type': 'application/x-www-form-urlencoded',
+      }
     });
 
     const json = await response.json();
 
     if (json.response) {
-      const pixivToken = json.response["access_token"];
-      setCookie('pixivDeviceToken', json.response["device_token"]);
+      const pixivToken = json.response['access_token'];
+      setCookie('pixivDeviceToken', json.response['device_token']);
       setCookie('pixivToken', pixivToken);
       return pixivToken;
     } else {
@@ -84,7 +122,12 @@ enum SubmitStatus {
   STORED,
 }
 
-const options = () => {
+interface IOptionsProps {
+  animateGifs: boolean;
+  setAnimateGifs: (val: boolean) => void;
+}
+
+const Options = ({ animateGifs, setAnimateGifs }: IOptionsProps) => {
   const [pixivStatus, setPixivStatus] = useState(SubmitStatus.NONE);
   const [twitterStatus, setTwitterStatus] = useState(SubmitStatus.LOADING);
 
@@ -135,16 +178,37 @@ const options = () => {
       <p><b>Pixiv Status: </b>
         { pixivStatus === SubmitStatus.LOADING && <>Loading...</>}
         { pixivStatus === SubmitStatus.ERROR && <>Error! Are you sure the username and password are correct?</>}
-        { pixivStatus === SubmitStatus.SUCCESS && <>Logged in! <button onClick={() => location.reload()}>Reload?</button></>}
+        { pixivStatus === SubmitStatus.SUCCESS && <>Logged in! <button onClick={() => window.location.reload()}>Reload?</button></>}
         { pixivStatus === SubmitStatus.STORED && <>Already logged in, hi {getCookie('pixivUsername')}!</>}
         { pixivStatus === SubmitStatus.NONE && <>No token found, log in above</>}
       </p>
       <p><b>Twitter Status: </b>
         { twitterStatus === SubmitStatus.LOADING && <>Loading...</>}
         { twitterStatus === SubmitStatus.ERROR && <>Error! Something went wrong, check the console</>}
-        { twitterStatus === SubmitStatus.SUCCESS && <>Fetched a token! <button onClick={() => location.reload()}>Reload?</button></>}
+        { twitterStatus === SubmitStatus.SUCCESS && <>Fetched a token! <button onClick={() => window.location.reload()}>Reload?</button></>}
         { twitterStatus === SubmitStatus.STORED && <>Found an existing token!</>}
       </p>
+
+      <fieldset>
+        <legend>Gif animations:</legend>
+
+        <label htmlFor="animate">Animate</label>
+        <input
+          type="radio"
+          id="animate"
+          onChange={() => setAnimateGifs(true)}
+          checked={animateGifs}
+        />
+
+        <label htmlFor="still">Still frame</label>
+        <input
+          type="radio"
+          id="still"
+          onChange={() => setAnimateGifs(false)}
+          checked={!animateGifs}
+        />
+      </fieldset>
+
       <p><b>Source:</b> <a href="https://github.com/RvanderLaan/BookmarkImageBrowser">Github</a></p>
       <p><b>Version:</b> {version}</p>
       <p>
@@ -154,4 +218,4 @@ const options = () => {
   );
 };
 
-export default options;
+export default Options;

@@ -29,6 +29,7 @@ interface IAppState {
   showOptions: boolean,
   thumbnailSize : ThumbnailSize,
   searchQuery : string,
+  animateGifs: boolean,
 }
 
 class App extends Component<IAppProps, IAppState> {
@@ -47,6 +48,7 @@ class App extends Component<IAppProps, IAppState> {
       showOptions: false,
       thumbnailSize: getCookie('thumbnailSize') as ThumbnailSize || ThumbnailSize.LARGE,
       searchQuery: '',
+      animateGifs: localStorage.getItem('animateGifs') === 'true',
     };
     this.chooseBookmarks = this.chooseBookmarks.bind(this);
     this.setSearchQuery = this.setSearchQuery.bind(this);
@@ -62,10 +64,11 @@ class App extends Component<IAppProps, IAppState> {
     this.prevFullImage = this.prevFullImage.bind(this);
     this.nextFullImage = this.nextFullImage.bind(this);
     this.setThumbnailSize = this.setThumbnailSize.bind(this);
+    this.handleSetAnimateGifs = this.handleSetAnimateGifs.bind(this);
   }
   async componentWillMount() {
     // When you go back (pop), choose that directory
-    window.onpopstate = async (event) => {
+    window.onpopstate = async (event: PopStateEvent) => {
       await this.chooseDirectory(event.state, true);
     };
 
@@ -83,7 +86,7 @@ class App extends Component<IAppProps, IAppState> {
 
     // If a directory ID is in the URL, use it to show that directory
     let currentId = '0';
-    const params = location.search;
+    const params = window.location.search;
     if (params.length > 1) {
       currentId = params.substr(1, params.length);
     }
@@ -104,7 +107,7 @@ class App extends Component<IAppProps, IAppState> {
     
   async chooseDirectory(id : string, doNotPushState? : boolean) {
     if (!doNotPushState) {
-      history.pushState(id, "Directory " + id, window.location.pathname + "?" + id);
+      window.history.pushState(id, "Directory " + id, window.location.pathname + "?" + id);
     }
 
     this.setState({
@@ -249,6 +252,10 @@ class App extends Component<IAppProps, IAppState> {
       return { splitBookmarks };
     });
   }
+  handleSetAnimateGifs(val: boolean) {
+    this.setState({ animateGifs: val });
+    localStorage.setItem('animateGifs', val + '');
+  }
   render() {
     const { currentId, path, splitBookmarks, fullImage, showOptions, thumbnailSize, searchQuery } = this.state;
     return (
@@ -270,7 +277,12 @@ class App extends Component<IAppProps, IAppState> {
           searchQuery={searchQuery}
         />
 
-        { showOptions && <Options /> }
+        { showOptions && (
+          <Options
+            animateGifs={this.state.animateGifs}
+            setAnimateGifs={this.handleSetAnimateGifs}
+          />
+        )}
 
         {/* Todo: use https://github.com/CassetteRocks/react-infinite-scroller */}
         <div id="content">
@@ -295,6 +307,7 @@ class App extends Component<IAppProps, IAppState> {
                   showFullImage={this.showFullImage}
                   size={thumbnailSize}
                   convertToLink={() => this.convertImageToLink(bookmark, currentId)}
+                  animated={this.state.animateGifs}
                 />
             ))}
           </div>

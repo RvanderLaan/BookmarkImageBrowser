@@ -48,6 +48,39 @@ class BookmarkProvider implements IBookmarkProvider {
   }
 }
 
+const testImages: BookmarkTreeNode[] = [
+  {
+    title: 'Reddit post',
+    url: 'https://www.reddit.com/r/chloe/comments/flfju7/chloe_character_sheet/',
+    id: 'reddit',
+  },
+  {
+    title: 'Twitter image, grabbed 27-7-2020',
+    url: 'https://pbs.twimg.com/media/EcPupsaVcAEImzB?format=jpg&name=4096x4096',
+    id: 'twitter-img1',
+  },
+  {
+    title: 'DeviantArt',
+    url: 'https://www.deviantart.com/radittz/art/Wicked-Necromancer-524980368',
+    id: 'deviant-art',
+  },
+  {
+    title: 'Imgur album',
+    url: 'https://imgur.com/a/f5z8Y/',
+    id: 'imgur-album',
+  },
+  {
+    title: 'Missing image (404)',
+    url: 'https://cdn.awwni.me/1zthmx.jpg',
+    id: 'missing'
+  },
+  {
+    title: 'Animated gif',
+    url: 'https://fauux.neocities.org/16c.gif',
+    id: 'gif'
+  }
+];
+
 class MockBookmarkProvider implements IBookmarkProvider {
   static getRandomBookmark = () => ({
     url: `https://placekitten.com/${Math.round(100 + 500 * Math.random())}/${Math.round(100 + 500 * Math.random())}`,
@@ -60,10 +93,13 @@ class MockBookmarkProvider implements IBookmarkProvider {
   });
 
   async getBookmark(id : string) : Promise<BookmarkTreeNode> {
-    return MockBookmarkProvider.getRandomBookmark();
+    return testImages.find(bookmark => bookmark.id === id)!;
+    // return MockBookmarkProvider.getRandomBookmark();
   }
   async getBookmarks(directoryId : string) : Promise<BookmarkTreeNode[]> {
-    return Array.from(new Array(Math.round(1 + Math.random() * 32)), MockBookmarkProvider.getRandomBookmark);
+    return testImages;
+    // Placeholder images
+    // return Array.from(new Array(Math.round(1 + Math.random() * 32)), MockBookmarkProvider.getRandomBookmark);
   }
   async getDirectoryPath(id : string) : Promise<BookmarkTreeNode[]> {
     return Array.from(new Array(4), MockBookmarkProvider.getRandomDirectory);
